@@ -19,7 +19,7 @@ It requires a path for the sourcedate raw folder to convert. The optional flags 
 ## Usage
 
 ```bash
-dcm2bids_c --config ./myconfig.json
+dcm2bids_c /path/to/data_directory --config ./myconfig.json
 ```
 
 ### Arguments:
