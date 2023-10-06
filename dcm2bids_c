@@ -1,0 +1,134 @@
+#!/bin/bash
+
+
+usage() {
+    echo "Usage: dcm2bids_c [OPTIONS] <data-dir>"
+    echo ""
+    echo "Organizes MRI data into BIDS structure."
+    echo ""
+    echo "Arguments:"
+    echo "  <data-dir>         Directory containing the MRI data"
+    echo ""
+    echo "Options:"
+    echo "  --config|-c <config-path>   Path to the configuration file (default: ./config.json)"
+    echo "  --id|-i <subject-id>        Override subject ID (default: taken from the config file)"
+    echo "  --out|-o <derivatives-path> Override the path for derivatives (default: taken from the config file)"
+    echo "  --help|-h                   Show this help message"
+    echo 
+    echo "Example:"
+    echo "  dcm2bids_c /path/to/data_directory --id sub-02 --config ./myconfig.json"
+    exit 0
+}
+
+# Default paths
+CONFIG_PATH="./config.json"
+DATA_DIR="" # Initialize as empty
+SUBJECT_ID="" # Initialize as empty
+
+# Parse command line options
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --config|-c) CONFIG_PATH="$2"; shift 2 ;;
+        --id|-i) SUBJECT_ID="$2"; shift 2 ;;
+        --out|-o) DERIVATIVES_PATH="$2"; shift 2 ;; 
+        --help|-h) usage ;;
+        *) 
+            if [ -z "$DATA_DIR" ]; then
+                DATA_DIR="$1"; shift
+            else
+                echo "Invalid argument: $1"; exit 1
+            fi
+            ;;
+    esac
+done
+
+# Verify that the config file exists
+if [ ! -f "$CONFIG_PATH" ]; then
+    echo "Error: $CONFIG_PATH not found."
+    exit 1
+fi
+
+# If SUBJECT_ID is not provided via command line, use the value from the config file
+if [ -z "$SUBJECT_ID" ]; then
+    SUBJECT_ID=$(jq -r '.subject_id' "$CONFIG_PATH")
+fi
+
+# Check if SUBJECT_ID is set, if not, print an error and exit
+if [ -z "$SUBJECT_ID" ] || [ "$SUBJECT_ID" == "null" ]; then
+    echo "Error: Subject ID is not provided in the config file or by the --id flag."
+    exit 1
+fi
+
+# Check if the first character of SUBJECT_ID is a letter or number
+if [[ ! "${SUBJECT_ID:0:1}" =~ ^[a-zA-Z0-9]$ ]]; then
+    echo "Error: Subject ID must start with a letter or number."
+    exit 1
+fi
+
+# Set the DERIVATIVES_PATH from the config file, if not provided via command line
+if [ -z "$DERIVATIVES_PATH" ]; then
+    DERIVATIVES_PATH=$(jq -r '.derivatives_path' "$CONFIG_PATH")
+    if [ "$DERIVATIVES_PATH" == "null" ]; then
+        DERIVATIVES_PATH="./derivatives"  # Default value if not found in config
+    fi
+fi
+
+# Create the sourcedata and code directories if they don't exist
+[ ! -d "./sourcedata" ] && mkdir ./sourcedata
+[ ! -d "./code" ] && mkdir ./code
+
+# Create the dataset_description.json, README, and participants.tsv 
+touch ./dataset_description.json
+touch ./README
+touch ./participants.tsv
+
+# Organize sessions
+SESSION_COUNT=$(jq '.sessions | length' "$CONFIG_PATH")
+echo "SESSION_COUNT = $SESSION_COUNT"
+for (( i=0; i<$SESSION_COUNT; i++ )); do
+    SESSION_NAME=$(jq -r ".sessions[$i].name" "$CONFIG_PATH")
+    mkdir -p "$DERIVATIVES_PATH"/"$SUBJECT_ID"/"$SESSION_NAME"
+    
+    # Organize anatomical data
+    ANAT_FOLDERS=$(jq -r ".sessions[$i].anat[]" "$CONFIG_PATH")
+    if [ "$ANAT_FOLDERS" != "null" ]; then
+        for ANAT_FOLDER in $ANAT_FOLDERS; do
+            OUTPUT_FOLDER="$DERIVATIVES_PATH/$SUBJECT_ID/$SESSION_NAME/anat"
+            mkdir -p "$OUTPUT_FOLDER"
+            [ -d "$ANAT_FOLDER" ] && dcm2niix -o "$OUTPUT_FOLDER" -f "${SUBJECT_ID}_${SESSION_NAME}_anat" "$ANAT_FOLDER"
+        done
+    fi
+    
+    # Organize DWI data
+    DWI_FOLDER=$(jq -r ".sessions[$i].dwi" "$CONFIG_PATH")
+    OUTPUT_FOLDER="$DERIVATIVES_PATH/$SUBJECT_ID/$SESSION_NAME/dwi"
+    if [ "$DWI_FOLDER" != "null" ] && [ -n "$DWI_FOLDER" ] && [ -d "$DWI_FOLDER" ]; then
+        mkdir -p "$OUTPUT_FOLDER"
+        dcm2niix -o "$OUTPUT_FOLDER" -f "${SUBJECT_ID}_${SESSION_NAME}_dwi" "$DWI_FOLDER"
+        mrconvert "$OUTPUT_FOLDER"/"${SUBJECT_ID}"_"${SESSION_NAME}"_dwi.nii "$OUTPUT_FOLDER"/"${SUBJECT_ID}"_"${SESSION_NAME}"_dwi.mif -force 
+    fi
+
+    # Organize functional data (only create folders)
+    FUNC_FOLDERS=$(jq -r ".sessions[$i].func[]" "$CONFIG_PATH")
+    if [ "$FUNC_FOLDERS" == "null" ]; then
+        mkdir -p "$DERIVATIVES_PATH"/"$SUBJECT_ID"/"$SESSION_NAME"/func
+    fi
+
+    # Organize TMS data (only create folders)
+    TMS_FOLDERS=$(jq -r ".sessions[$i].tms[]" "$CONFIG_PATH")
+    if [ "$TMS_FOLDERS" == "null" ]; then
+        mkdir -p "$DERIVATIVES_PATH"/"$SUBJECT_ID"/"$SESSION_NAME"/tms
+    fi
+    
+    # Organize behavioral data (only create folders)
+    BEH_FOLDERS=$(jq -r ".sessions[$i].beh[]" "$CONFIG_PATH")
+    if [ "$BEH_FOLDERS" == "null" ]; then
+        mkdir -p "$DERIVATIVES_PATH"/"$SUBJECT_ID"/"$SESSION_NAME"/beh
+    fi
+done
+
+echo "Data organized into BIDS structure for subject $SUBJECT_ID"
+echo "-----------------------------------------------------------"
+tree "$DERIVATIVES_PATH/$SUBJECT_ID"
+echo "-----------------------------------------------------------"
+
