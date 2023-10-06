@@ -1,0 +1,35 @@
+{
+    // Subject ID for the current session. Overridable using the --id flag when running the script.
+    "subject_id": "YOUR_SUBJECT_ID_HERE",
+
+    // Default path for derivatives. Overridable using the --der flag.
+    "derivatives_path": "path/to/your/derivatives_folder", 
+
+    // Sessions to organize.
+    "sessions": [
+        {
+            // Name of the session.
+            "name": "ses-imaging",
+
+            // Directories containing anatomical data.
+            "anat": ["path/to/your/anat_folder_1"],
+
+            // Directory containing diffusion weighted imaging data.
+            "dwi": "path/to/your/dwi_folder_1",
+
+            // Directories containing functional data (if any).
+            "func": [],
+
+            // Directories containing TMS data (if any).
+            "tms": []
+        },
+        {
+            "name": "ses-task",
+            "beh": []
+        },
+        {
+            "name": "ses-tms",
+            "tms": []
+        }
+    ]
+}
