@@ -1,7 +1,7 @@
 # BIDS Organizer Tool (dcm2bids_c)
 
 This tool organizes medical imaging data into the Brain Imaging Data Structure (BIDS) format. It's designed to simplify the process of converting and organizing DICOM files and other associated data into the BIDS standard, converting also dicom (DCM) data in nifti (nii) files and nii files in mif (mrtrix3) files. 
-It requires a path for the sourcedate raw folder to convert. The optional flags are useful to change sub_id and output (derivatives) path without changing the config.json file (assuming that the anat and dwi folders in the config.json file are set correctly) 
+It requires a path for the sourcedate raw folder to convert. The optional flags are useful to change sub_id and output (derivatives) path without changing the config.json file (assuming that the anat and dwi folders in the config.json file are set correctly).
 
 ## Features
 
