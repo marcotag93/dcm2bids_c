@@ -27,4 +27,4 @@ dcm2bids_c /path/to/data_directory --config ./myconfig.json
 - `--config | -c` : Specify the path to your configuration JSON file. (Default: `./config.json`)
 - `--id | -i` : Specify the subject ID. Overrides the ID from the configuration file if provided.
 - `--out | -o` : Specify the output (derivatives) folder.
-- `--help | -ch` : Show usage.
+- `--help | -h` : Show usage.
