@@ -14,7 +14,6 @@ It requires a path for the sourcedate raw folder to convert. The optional flags 
 
 - [jq](https://stedolan.github.io/jq/)
 - [dcm2niix](https://github.com/rordenlab/dcm2niix)
-- [mrconvert](https://mrtrix.readthedocs.io/en/latest/reference/commands/mrconvert.html) from MRtrix3
 
 ## Usage
 
