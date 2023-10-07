@@ -105,8 +105,15 @@ for (( i=0; i<$SESSION_COUNT; i++ )); do
     if [ "$DWI_FOLDER" != "null" ] && [ -n "$DWI_FOLDER" ] && [ -d "$DWI_FOLDER" ]; then
         mkdir -p "$OUTPUT_FOLDER"
         dcm2niix -o "$OUTPUT_FOLDER" -f "${SUBJECT_ID}_${SESSION_NAME}_dwi" "$DWI_FOLDER"
-        mrconvert "$OUTPUT_FOLDER"/"${SUBJECT_ID}"_"${SESSION_NAME}"_dwi.nii "$OUTPUT_FOLDER"/"${SUBJECT_ID}"_"${SESSION_NAME}"_dwi.mif -force 
+        
+        # Check if Mrtrix3 is installed
+        if command -v mrconvert &> /dev/null; then
+            mrconvert "$OUTPUT_FOLDER"/"${SUBJECT_ID}"_"${SESSION_NAME}"_dwi.nii "$OUTPUT_FOLDER"/"${SUBJECT_ID}"_"${SESSION_NAME}"_dwi.mif -force 
+        else
+            echo "mrconvert not found. Skipping conversion in mif."
+        fi
     fi
+
 
     # Organize functional data (only create folders)
     FUNC_FOLDERS=$(jq -r ".sessions[$i].func[]" "$CONFIG_PATH")
